@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full antialiased light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Nhà Trọ Ngọc Nam — Hệ Thống Quản Lý Dormio HMS</title>
+  <!-- Google Fonts: Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Thư viện Quét mã QR CCCD bằng Camera & Ảnh -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            primary: { DEFAULT: '#14b8a6', hover: '#0d9488', soft: 'rgba(20, 184, 166, 0.12)' },
+            accent: { DEFAULT: '#f97316', hover: '#ea580c', soft: 'rgba(249, 115, 22, 0.12)' },
+            vacant: { DEFAULT: '#3b82f6', soft: 'rgba(59, 130, 246, 0.12)' },
+            deposit: { DEFAULT: '#8b5cf6', soft: 'rgba(139, 92, 246, 0.12)' },
+            danger: { DEFAULT: '#ef4444', soft: 'rgba(239, 68, 68, 0.12)' }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body { font-family: 'Be Vietnam Pro', sans-serif; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .room-card-grid {
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .room-card-grid:hover {
+      transform: translateY(-3px);
+    }
+    .canvas-draggable {
+      cursor: grab;
+    }
+    .canvas-draggable:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors duration-200">
+
+  <!-- ===================================================================== -->
+  <!-- THÔNG BÁO TOAST & LOADING OVERLAY                                     -->
+  <!-- ===================================================================== -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[200] space-y-2 max-w-sm w-full pointer-events-none"></div>
+
+  <div id="loading-overlay" class="fixed inset-0 bg-zinc-950/50 backdrop-blur-xs z-[190] hidden items-center justify-center">
+    <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl px-6 py-5 shadow-2xl flex items-center gap-3.5">
+      <div class="w-6 h-6 border-3 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+      <span id="loading-text" class="text-sm font-bold">Đang đồng bộ dữ liệu...</span>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PHẦN 1: GIAO DIỆN TRANG CHỦ PUBLIC & FORM ĐĂNG KÝ THUÊ TRỌ            -->
+  <!-- ===================================================================== -->
+  <div id="public-view" class="min-h-screen flex flex-col">
+    <!-- Header Trang chủ -->
+    <header class="sticky top-0 z-40 w-full border-b border-slate-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md">
+      <div class="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-teal-500/20">
+            N
+          </div>
+          <div>
+            <span class="font-black text-lg tracking-tight block leading-none" id="pub-brand-name">NHÀ TRỌ NGỌC NAM</span>
+            <span class="text-[11px] font-semibold text-slate-500 dark:text-zinc-400">Hệ thống Quản lý Phòng trọ Thông minh Dormio</span>
+          </div>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-6 text-xs font-bold text-slate-600 dark:text-zinc-300">
+          <a href="#pub-overview" class="hover:text-teal-500 transition-colors">Giới thiệu</a>
+          <a href="#pub-rooms" class="hover:text-teal-500 transition-colors">Tình trạng phòng</a>
+          <a href="#pub-booking" class="hover:text-teal-500 transition-colors">Đăng ký thuê trọ</a>
+        </nav>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300" title="Đổi giao diện Sáng/Tối">
+            <i data-lucide="sun" class="w-4 h-4"></i>
+          </button>
+          <button onclick="openLoginModal()" class="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md shadow-teal-500/20 transition-all active:scale-95">
+            <i data-lucide="log-in" class="w-4 h-4"></i>
+            <span>Đăng nhập Hệ thống</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Banner giới thiệu sơ lược về Nhà trọ -->
+    <section id="pub-overview" class="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-slate-900 to-zinc-950 text-white py-14 sm:py-20 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div class="lg:col-span-7 space-y-5">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/15 border border-teal-500/30 text-teal-300 text-xs font-bold">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            <span>Hệ thống Nhà Trọ Sinh Viên & Người Đi Làm An Ninh Tại Cần Thơ</span>
+          </div>
+          <h1 class="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+            Không gian sống tiện nghi, minh bạch điện nước & tự động hóa 100%
+          </h1>
+          <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl">
+            Hệ thống <b>Nhà Trọ Ngọc Nam</b> gồm 2 cơ sở tại <b>Phường Cái Răng (24 phòng)</b> và <b>Đường Võ Văn Kiệt - Phường Bình Thủy (9 phòng)</b>. Giờ giấc tự do, an ninh camera 24/7, trang bị sẵn máy lạnh tiết kiệm điện, tra cứu hóa đơn và thanh toán VietQR trực tuyến ngay trên điện thoại.
+          </p>
+          <div class="flex flex-wrap gap-3 pt-2">
+            <a href="#pub-rooms" class="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-lg shadow-teal-500/25 transition-all">
+              <i data-lucide="layout-grid" class="w-4 h-4"></i>
+              <span>Xem Sơ Đồ Tình Trạng Phòng</span>
+            </a>
+            <a href="#pub-booking" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold text-xs sm:text-sm px-5 py-3 rounded-2xl transition-all">
+              <i data-lucide="file-signature" class="w-4 h-4"></i>
+              <span>Đăng Ký Thuê Phòng Ngay</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Thống kê nhanh 2 cơ sở -->
+        <div class="lg:col-span-5 grid grid-cols-2 gap-3.5">
+          <div class="bg-white/5 border border-white/10 rounded-3xl p-5 backdrop-blur-md">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tổng số phòng</p>
+            <p id="pub-stat-total" class="text-3xl font-black text-white mt-1">33</p>
+            <p class="text-xs text-teal-400 mt-1 font-semibold">2 Khu trọ tại TP. Cần Thơ</p>
+          </div>
+          <div class="bg-blue-500/10 border border-blue-500/30 rounded-3xl p-5 backdrop-blur-md">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-blue-300">Phòng đang trống</p>
+            <p id="pub-stat-vacant" class="text-3xl font-black text-blue-400 mt-1">1</p>
+            <p class="text-xs text-blue-200 mt-1 font-semibold">Sẵn sàng dọn vào ở ngay</p>
+          </div>
+          <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-5 backdrop-blur-md">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-300">Giá thuê hợp lý</p>
+            <p class="text-xl font-black text-white mt-1">1.4tr – 2.6tr</p>
+            <p class="text-xs text-slate-300 mt-1">Điện 4k/kWh • Nước 10-12k/m³</p>
+          </div>
+          <div class="bg-orange-500/10 border border-orange-500/30 rounded-3xl p-5 backdrop-blur-md">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-orange-300">Chủ trọ hỗ trợ 24/7</p>
+            <p id="pub-stat-host" class="text-lg font-black text-white mt-1">Lê Văn Nam</p>
+            <p id="pub-stat-phone" class="text-xs text-orange-300 mt-1 font-mono">0346 576 748</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Khu vực xem Tình trạng phòng trực quan -->
+    <section id="pub-rooms" class="max-w-7xl mx-auto w-full py-12 px-4 sm:px-6 lg:px-8 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-black tracking-tight">Sơ Đồ & Tình Trạng Phòng Trực Quan</h2>
+          <p class="text-xs sm:text-sm text-slate-500 dark:text-zinc-400">Bấm vào phòng trống để điền nhanh vào biểu mẫu đăng ký thuê phòng</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="pub-filter-khu" onchange="renderPublicRooms()" class="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-bold">
+            <option value="ALL">Tất cả Khu trọ (Cái Răng & Bình Thủy)</option>
+            <option value="Cái Răng">Khu Cái Răng (24 phòng)</option>
+            <option value="Bình Thủy (Võ Văn Kiệt)">Khu Bình Thủy - Võ Văn Kiệt (9 phòng)</option>
+          </select>
+          <select id="pub-filter-status" onchange="renderPublicRooms()" class="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-bold">
+            <option value="ALL">Mọi trạng thái</option>
+            <option value="Trống">Chỉ hiện Phòng Trống</option>
+            <option value="Đang thuê">Đang thuê</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="pub-rooms-container" class="space-y-5"></div>
+    </section>
+
+    <!-- Form Đăng ký thuê trọ -->
+    <section id="pub-booking" class="bg-slate-100/80 dark:bg-zinc-900/50 border-t border-slate-200 dark:border-zinc-800 py-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-3xl mx-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+        <div class="flex items-center gap-3 border-b border-slate-100 dark:border-zinc-800 pb-4">
+          <div class="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-600 flex items-center justify-center">
+            <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-black">Form Đăng Ký Thuê Trọ / Giữ Phòng</h3>
+            <p class="text-xs text-slate-500 dark:text-zinc-400">Điền thông tin bên dưới, hệ thống sẽ gửi thông báo ngay tới chủ trọ Lê Văn Nam</p>
+          </div>
+        </div>
+
+        <form id="form-public-booking" onsubmit="handlePublicBooking(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Họ và tên người đăng ký *</label>
+            <input type="text" id="bk-hoten" required placeholder="Nguyễn Văn A" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Số điện thoại liên hệ (10 số) *</label>
+            <input type="tel" id="bk-sdt" required pattern="0[0-9]{9}" maxlength="10" placeholder="0912345678" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Email nhận phản hồi</label>
+            <input type="email" id="bk-email" placeholder="example@gmail.com" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Khu trọ quan tâm *</label>
+            <select id="bk-khutro" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-semibold">
+              <option value="Bình Thủy (Võ Văn Kiệt)">Khu Bình Thủy (Đường Võ Văn Kiệt)</option>
+              <option value="Cái Răng">Khu Cái Răng (Phường Cái Răng)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1.5">Mã phòng đăng ký</label>
+            <input type="text" id="bk-phong" placeholder="VD: BT-P09 hoặc Tư vấn phòng trống" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-semibold" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-bold mb-1.5">Số người ở</label>
+              <input type="number" id="bk-songuoi" min="1" max="4" value="1" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-semibold" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1.5">Ngày dự kiến vào</label>
+              <input type="date" id="bk-ngayvao" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-semibold" />
+            </div>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold mb-1.5">Ghi chú nhu cầu (Có máy lạnh, tủ lạnh, sinh viên trường nào...)</label>
+            <textarea id="bk-ghichu" rows="2" placeholder="Nhập nhu cầu thuê phòng của bạn..." class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-semibold"></textarea>
+          </div>
+          <div class="sm:col-span-2 flex justify-end">
+            <button type="submit" class="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl shadow-md shadow-teal-500/20 transition-all">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              <span>Gửi Đăng Ký Thuê Phòng</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL ĐĂNG NHẬP HỆ THỐNG (ADMIN / MANAGER / USER)                     -->
+  <!-- ===================================================================== -->
+  <div id="login-modal" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs z-[150] hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5 relative">
+      <button onclick="closeLoginModal()" class="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+      <div class="text-center space-y-1.5">
+        <div class="w-12 h-12 rounded-2xl bg-teal-500/15 text-teal-500 flex items-center justify-center mx-auto font-black text-xl">N</div>
+        <h3 class="text-xl font-black">Đăng nhập Dormio HMS</h3>
+        <p class="text-xs text-slate-500 dark:text-zinc-400">Hỗ trợ quyền Admin, Manager và Người thuê trọ (User)</p>
+      </div>
+
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Tên tài khoản (VD: hieu.ntt, nam.lv, loc.vlt)</label>
+          <input type="text" id="login-username" required placeholder="Nhập tên tài khoản..." class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-bold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold mb-1.5">Mật khẩu (Mặc định là Số điện thoại)</label>
+          <input type="password" id="login-password" required placeholder="Nhập mật khẩu..." class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3.5 py-2.5 text-xs font-bold" />
+        </div>
+        <div class="bg-slate-100 dark:bg-zinc-800/60 rounded-2xl p-3 text-[11px] space-y-1 text-slate-600 dark:text-zinc-300">
+          <p class="font-bold text-teal-600 dark:text-teal-400">Tài khoản dùng thử từ dữ liệu thật của bạn:</p>
+          <p>• <b>Admin:</b> <code>hieu.ntt</code> hoặc <code>nam.lv</code> | MK: <code>0346576748</code></p>
+          <p>• <b>Manager:</b> <code>quanly.cr</code> | MK: <code>0909000111</code></p>
+          <p>• <b>User (P.01 CR):</b> <code>loc.vlt</code> | MK: <code>0382718000</code></p>
+          <p>• <b>User (P.07 BT):</b> <code>khanh.npm</code> | MK: <code>0939186509</code></p>
+        </div>
+        <button type="submit" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold text-sm py-3 rounded-xl shadow-md shadow-teal-500/20 transition-all">
+          Đăng nhập ngay
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PHẦN 2: GIAO DIỆN QUẢN TRỊ & CỔNG USER SAU KHI ĐĂNG NHẬP             -->
+  <!-- ===================================================================== -->
+  <div id="app-shell" class="hidden min-h-screen flex bg-slate-50 dark:bg-zinc-950">
+    <!-- Sidebar cố định bên trái (Chuẩn giao diện phong.html) -->
+    <aside class="w-64 border-r border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col fixed inset-y-0 z-30">
+      <div class="h-14 px-4 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-teal-500 text-white font-black flex items-center justify-center">N</div>
+          <span class="font-black text-sm tracking-tight">Dormio Ngọc Nam</span>
+        </div>
+        <span id="badge-user-role" class="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-teal-500/15 text-teal-600">ADMIN</span>
+      </div>
+
+      <!-- Bộ chuyển đổi Khu trọ (Cái Răng / Bình Thủy) -->
+      <div id="sidebar-khu-selector" class="px-3 py-2.5 border-b border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-950/50">
+        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">KHU TRỌ ĐANG XEM</span>
+        <select id="global-khu-filter" onchange="onGlobalKhuChange()" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-xs font-bold">
+          <option value="ALL">Tất cả 2 Cơ sở (33 phòng)</option>
+          <option value="Cái Răng">Cơ sở 1: Cái Răng (24 phòng)</option>
+          <option value="Bình Thủy (Võ Văn Kiệt)">Cơ sở 2: Bình Thủy - VVK (9 phòng)</option>
+        </select>
+      </div>
+
+      <!-- Menu điều hướng động theo Quyền -->
+      <nav id="sidebar-nav" class="flex-1 px-3 py-4 overflow-y-auto space-y-1 text-xs font-bold"></nav>
+
+      <!-- Thông tin tài khoản đang đăng nhập -->
+      <div class="p-3 border-t border-slate-200 dark:border-zinc-800 space-y-2">
+        <div class="flex items-center justify-between px-2">
+          <div>
+            <p id="current-user-name" class="text-xs font-black truncate">Nguyễn Tấn Trung Hiếu</p>
+            <p id="current-user-sub" class="text-[11px] text-slate-400 truncate">hieu.ntt</p>
+          </div>
+          <button onclick="toggleTheme()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800">
+            <i data-lucide="sun" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <button onclick="logoutUser()" class="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+          <span>Đăng xuất tài khoản</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Nội dung chính bên phải -->
+    <main class="flex-1 pl-64 min-w-0">
+      <div id="main-tab-content" class="p-6 max-w-7xl mx-auto space-y-6"></div>
+    </main>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL QUÉT MÃ QR CCCD TẠO USER & CHỈNH SỬA 24 TRƯỜNG NGƯỜI THUÊ       -->
+  <!-- ===================================================================== -->
+  <div id="tenant-modal" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs z-[160] hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-4xl w-full p-6 shadow-2xl space-y-5 my-8 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-3">
+        <div>
+          <h3 id="tenant-modal-title" class="text-lg font-black">Quét Mã QR CCCD & Hồ Sơ Người Thuê (Đầy Đủ 24 Trường)</h3>
+          <p class="text-xs text-slate-500">Tự động sinh tài khoản theo quy tắc <code>ten.holot</code> (VD: Nguyễn Tấn Trung Hiếu → <code>hieu.ntt</code>) và mật khẩu là SĐT</p>
+        </div>
+        <button onclick="closeTenantModal()" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Khung Camera Quét QR CCCD trực tiếp hoặc Tải ảnh QR CCCD -->
+      <div class="bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="qr-code" class="w-5 h-5 text-teal-500"></i>
+            <span class="text-xs font-black uppercase">Quét mã QR trên Căn cước công dân (eKYC)</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="startCCCDQrCamera()" class="inline-flex items-center gap-1.5 bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">
+              <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+              <span>Mở Camera Quét QR</span>
+            </button>
+            <label class="inline-flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer">
+              <i data-lucide="image" class="w-3.5 h-3.5"></i>
+              <span>Chọn Ảnh QR CCCD</span>
+              <input type="file" accept="image/*" onchange="scanCCCDQrFromFile(this)" class="hidden" />
+            </label>
+            <button type="button" onclick="stopCCCDQrCamera()" class="inline-flex items-center gap-1.5 bg-slate-200 dark:bg-zinc-800 text-xs font-bold px-3 py-1.5 rounded-xl">
+              <span>Tắt Camera</span>
+            </button>
+          </div>
+        </div>
+        <div id="cccd-qr-reader" class="w-full max-w-sm mx-auto rounded-xl overflow-hidden"></div>
+        <!-- Ô dán chuỗi QR thủ công nếu dùng đầu đọc mã vạch cầm tay -->
+        <div class="flex gap-2">
+          <input type="text" id="raw-cccd-qr-input" placeholder="Hoặc dán chuỗi QR CCCD vào đây (VD: 092099001234||Nguyễn Tấn Trung Hiếu|02011999|Nam|Cần Thơ|10052022)..." class="flex-1 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs" />
+          <button type="button" onclick="parseRawCCCDString(document.getElementById('raw-cccd-qr-input').value)" class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl">
+            Tách dữ liệu QR
+          </button>
+        </div>
+      </div>
+
+      <!-- Form 24 trường thông tin người thuê + thông tin phòng & tài khoản -->
+      <form id="form-tenant-24" onsubmit="handleSaveTenantForm(event)" class="space-y-4">
+        <input type="hidden" id="tn-mode" value="create" />
+        <input type="hidden" id="tn-makh" value="" />
+
+        <!-- Hàng cấu hình Phòng & Tài khoản tự động -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/20">
+          <div>
+            <label class="block text-[11px] font-bold mb-1">Khu trọ *</label>
+            <select id="tn-khutro" onchange="populateRoomSelectForTenant()" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-bold">
+              <option value="Cái Răng">Cái Răng</option>
+              <option value="Bình Thủy (Võ Văn Kiệt)">Bình Thủy (Võ Văn Kiệt)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold mb-1">Mã phòng *</label>
+            <select id="tn-maphong" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-bold"></select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold mb-1">Tài khoản tự động (ten.holot)</label>
+            <input type="text" id="tn-username-preview" readonly class="w-full rounded-xl border border-teal-500/40 bg-teal-500/10 px-3 py-2 text-xs font-black text-teal-600 dark:text-teal-300 font-mono" placeholder="hieu.ntt" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold mb-1">Vai trò trong phòng</label>
+            <select id="tn-vaitrophong" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-bold">
+              <option value="Đại diện HĐ">Đại diện HĐ</option>
+              <option value="Thành viên">Thành viên cùng phòng</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 24 TRƯỜNG THÔNG TIN CHUẨN THEO ĐÚNG YÊU CẦU SỐ 3 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div>
+            <label class="block text-xs font-bold mb-1">1. Họ tên * (Tự tạo Username)</label>
+            <input type="text" id="f24-hoten" required oninput="updateUsernamePreview()" placeholder="Nguyễn Tấn Trung Hiếu" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">2. Ngày sinh (DD/MM/YYYY)</label>
+            <input type="text" id="f24-ngaysinh" placeholder="02/01/1999" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">3. Mã lớp / Khoá - Trường</label>
+            <input type="text" id="f24-malop" placeholder="SV Năm 1 - ĐH Cần Thơ" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1">4. Số CCCD (12 số)</label>
+            <input type="text" id="f24-socccd" maxlength="12" placeholder="092099001234" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-mono font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">5. Giới tính</label>
+            <select id="f24-gioitinh" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold">
+              <option value="Nam">Nam</option>
+              <option value="Nữ">Nữ</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">6. Địa chỉ thường trú (theo CCCD)</label>
+            <input type="text" id="f24-diachi" placeholder="Phường Bình Thủy, TP. Cần Thơ" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1">7. Điện thoại * (10 số - Làm Mật khẩu)</label>
+            <input type="tel" id="f24-dienthoai" required pattern="0[0-9]{9}" maxlength="10" placeholder="0346576748" class="w-full rounded-xl border border-teal-500 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-mono font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">8. Biển số xe</label>
+            <input type="text" id="f24-biensoxe" placeholder="65B1-123.45" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">9. Loại xe</label>
+            <select id="f24-loaixe" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold">
+              <option value="Xe máy">Xe máy</option>
+              <option value="Xe máy điện">Xe máy điện</option>
+              <option value="Xe đạp / Đạp điện">Xe đạp / Đạp điện</option>
+              <option value="Không có xe">Không có xe</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1">10. Số tài khoản ngân hàng</label>
+            <input type="text" id="f24-sotaikhoan" placeholder="Nhập STK..." class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">11. Ngân hàng</label>
+            <select id="f24-nganhang" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold">
+              <option value="">-- Chọn Ngân hàng --</option>
+              <option value="TPBank">TPBank (Tiên Phong Bank)</option>
+              <option value="MBBank">MBBank (Quân Đội)</option>
+              <option value="Vietcombank">Vietcombank</option>
+              <option value="VietinBank">VietinBank</option>
+              <option value="BIDV">BIDV</option>
+              <option value="Agribank">Agribank</option>
+              <option value="Techcombank">Techcombank</option>
+              <option value="ACB">ACB</option>
+              <option value="Sacombank">Sacombank</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">12. Chi nhánh</label>
+            <input type="text" id="f24-chinhanh" placeholder="CN Cần Thơ" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1">13. Ảnh thẻ (Link hoặc Tải ảnh)</label>
+            <input type="text" id="f24-anhthe" placeholder="Link Google Drive ảnh thẻ..." class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">14. Ảnh trước CCCD</label>
+            <input type="text" id="f24-anhtruoc" placeholder="Link ảnh mặt trước CCCD..." class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">15. Ảnh sau CCCD</label>
+            <input type="text" id="f24-anhsau" placeholder="Link ảnh mặt sau CCCD..." class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1">16. Ngày cấp CCCD</label>
+            <input type="text" id="f24-ngaycap" placeholder="27/08/2022" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">17. Nơi cấp CCCD</label>
+            <input type="text" id="f24-noicap" value="Cục Cảnh sát QLHC về TTXH" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">18. Họ tên người thân</label>
+            <input type="text" id="f24-hotennguoithan" placeholder="Nguyễn Văn B" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1">19. Quan hệ</label>
+            <input type="text" id="f24-quanhe" placeholder="Cha / Mẹ / Anh / Chị" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">20. SĐT người thân (10 số)</label>
+            <input type="tel" id="f24-sdtnguoithan" maxlength="10" placeholder="0912345678" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">21. File PDF CCCD</label>
+            <input type="text" id="f24-pdfcccd" placeholder="Link PDF CCCD..." class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold mb-1">22. Thời hạn thuê</label>
+            <input type="text" id="f24-thoihan" placeholder="1 năm / Đến khi ra trường" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">23. Mail nhận hóa đơn</label>
+            <input type="email" id="f24-mail" placeholder="ten.holot@gmail.com" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">24. Ghi chú</label>
+            <input type="text" id="f24-ghichu" placeholder="Ghi chú ngày vào ở, tiền cọc..." class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-semibold" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-zinc-800">
+          <button type="button" onclick="closeTenantModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-xs font-bold">Hủy</button>
+          <button type="submit" class="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-teal-500/20">
+            Lưu Thông Tin & Cấp Tài Khoản
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+<script>
+    /**
+     * ========================================================================
+     * CẤU HÌNH KẾT NỐI BACKEND GOOGLE APPS SCRIPT (DÙNG CHO CẢ GITHUB PAGES)
+     * Khi deploy lên GitHub Pages, chỉ cần dán link WebApp Apps Script vào GAS_WEBAPP_URL
+     * ========================================================================
+     */
+    const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwEiYP23ItQ7D-c0wO4KpHAu6DMg0qsrTHgsQCOLg_vlp14FTBuYwHRjZJyUkESsRDBwQ/exec'; // Dán URL WebApp (https://script.google.com/macros/s/.../exec) khi chạy trên GitHub Pages
+
+    let STATE = {
+      user: null,
+      activeTab: 'rooms',
+      selectedKhu: 'ALL',
+      settings: {},
+      rooms: [],
+      tenants: [],
+      roommates: [],
+      profile: {},
+      history: [],
+      bills: [],
+      assets: [],
+      repairs: [],
+      violations: [],
+      bookings: [],
+      accounts: [],
+      qrScanner: null,
+      liveStream: null
+    };
+
+    // Hàm gọi API tự động tương thích cả Google Apps Script và GitHub Pages
+    async function apiCall(action, payload = {}) {
+      showLoading(true);
+      try {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          return await new Promise((resolve, reject) => {
+            google.script.run
+              .withSuccessHandler(res => { showLoading(false); resolve(res); })
+              .withFailureHandler(err => { showLoading(false); reject(err); })
+              .callServerApi(action, payload);
+          });
+        } else if (GAS_WEBAPP_URL && GAS_WEBAPP_URL.trim() !== '') {
+          const response = await fetch(GAS_WEBAPP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action, ...payload })
+          });
+          const data = await response.json();
+          showLoading(false);
+          return data;
+        } else {
+          showLoading(false);
+          showToast('Chưa cấu hình GAS_WEBAPP_URL hoặc đang chạy bản xem trước.', 'warning');
+          return { success: false };
+        }
+      } catch (err) {
+        showLoading(false);
+        showToast('Lỗi kết nối: ' + err.message, 'error');
+        return { success: false, message: err.message };
+      }
+    }
+
+    function showLoading(show, text = 'Đang xử lý dữ liệu...') {
+      const el = document.getElementById('loading-overlay');
+      document.getElementById('loading-text').innerText = text;
+      el.classList.toggle('hidden', !show);
+      el.classList.toggle('flex', show);
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const colors = {
+        success: 'bg-emerald-600 text-white',
+        error: 'bg-red-600 text-white',
+        warning: 'bg-amber-500 text-white'
+      };
+      const div = document.createElement('div');
+      div.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-xl text-xs font-bold flex items-center justify-between gap-3 ${colors[type] || colors.success}`;
+      div.innerHTML = `<span>${message}</span>`;
+      container.appendChild(div);
+      setTimeout(() => div.remove(), 4000);
+    }
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    /**
+     * ========================================================================
+     * MODULE 1: TRANG CHỦ PUBLIC & FORM ĐĂNG KÝ THUÊ TRỌ
+     * ========================================================================
+     */
+    window.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      const res = await apiCall('getPublicData');
+      if (res && res.success) {
+        STATE.settings = res.settings || {};
+        STATE.rooms = res.rooms || [];
+        renderPublicRooms();
+      }
+    });
+
+    function renderPublicRooms() {
+      const khuFilter = document.getElementById('pub-filter-khu').value;
+      const statusFilter = document.getElementById('pub-filter-status').value;
+      const container = document.getElementById('pub-rooms-container');
+
+      const totalRooms = STATE.rooms.length;
+      const vacantRooms = STATE.rooms.filter(r => r.Trang_Thai === 'Trống').length;
+      document.getElementById('pub-stat-total').innerText = totalRooms;
+      document.getElementById('pub-stat-vacant').innerText = vacantRooms;
+
+      const filtered = STATE.rooms.filter(r => {
+        if (khuFilter !== 'ALL' && r.Khu_Tro !== khuFilter) return false;
+        if (statusFilter !== 'ALL' && r.Trang_Thai !== statusFilter) return false;
+        return true;
+      });
+
+      // Nhóm theo Khu trọ & Dãy/Tầng giống giao diện phong.html
+      const groups = {};
+      filtered.forEach(r => {
+        const key = `${r.Khu_Tro} — ${r.Day_Tang}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(r);
+      });
+
+      container.innerHTML = Object.keys(groups).map(groupTitle => {
+        const items = groups[groupTitle];
+        return `
+          <div class="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-xs flex flex-col md:flex-row gap-4">
+            <div class="w-full md:w-44 bg-zinc-900 text-white rounded-2xl p-4 flex flex-col justify-center items-center text-center shrink-0">
+              <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Khu vực / Tầng</span>
+              <span class="text-sm font-black mt-1">${groupTitle}</span>
+            </div>
+            <div class="flex-1 flex flex-wrap gap-3 items-center">
+              ${items.map(r => {
+                const isVacant = r.Trang_Thai === 'Trống';
+                const badgeClass = isVacant
+                  ? 'bg-blue-500/10 border-blue-500/40 text-blue-600 dark:text-blue-400'
+                  : 'bg-teal-500/10 border-teal-500/30 text-teal-600 dark:text-teal-400';
+                return `
+                  <div onclick="selectRoomForBooking('${r.Khu_Tro}', '${r.Ma_Phong}', '${r.Trang_Thai}')"
+                       class="room-card-grid cursor-pointer rounded-2xl border p-3.5 w-[130px] h-[115px] flex flex-col items-center justify-center text-center ${badgeClass}">
+                    <span class="text-base font-black">${r.Ma_Phong}</span>
+                    <span class="text-[11px] font-bold mt-0.5">${Number(r.Gia_Phong).toLocaleString('vi-VN')}đ</span>
+                    <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md mt-1.5 bg-white/70 dark:bg-zinc-900/70">
+                      ${r.Trang_Thai}
+                    </span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectRoomForBooking(khuTro, maPhong, trangThai) {
+      document.getElementById('bk-khutro').value = khuTro;
+      document.getElementById('bk-phong').value = maPhong;
+      document.getElementById('pub-booking').scrollIntoView({ behavior: 'smooth' });
+      showToast(`Đã chọn phòng ${maPhong} (${trangThai}) vào biểu mẫu đăng ký!`);
+    }
+
+    async function handlePublicBooking(e) {
+      e.preventDefault();
+      const payload = {
+        hoTen: document.getElementById('bk-hoten').value,
+        soDienThoai: document.getElementById('bk-sdt').value,
+        email: document.getElementById('bk-email').value,
+        khuTro: document.getElementById('bk-khutro').value,
+        phongQuanTam: document.getElementById('bk-phong').value,
+        soNguoi: document.getElementById('bk-songuoi').value,
+        ngayVaoO: document.getElementById('bk-ngayvao').value,
+        ghiChu: document.getElementById('bk-ghichu').value
+      };
+      const res = await apiCall('submitBooking', payload);
+      if (res && res.success) {
+        showToast(res.message);
+        document.getElementById('form-public-booking').reset();
+      }
+    }
+
+    /**
+     * ========================================================================
+     * MODULE 2 & 3: QUÉT MÃ QR CCCD & TỰ ĐỘNG ĐẶT TÊN TÀI KHOẢN (ten.holot)
+     * Ví dụ: Nguyễn Tấn Trung Hiếu -> hieu.ntt | Nguyễn Văn Nam -> nam.nv
+     * ========================================================================
+     */
+    function removeVietnameseAccentsJS(str) {
+      if (!str) return '';
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D');
+    }
+
+    function computeUsernameJS(fullName) {
+      const clean = removeVietnameseAccentsJS(fullName.trim()).toLowerCase();
+      const parts = clean.split(/\s+/).filter(Boolean);
+      if (parts.length === 0) return '';
+      if (parts.length === 1) return parts[0];
+      const ten = parts[parts.length - 1];
+      const hoLot = parts.slice(0, parts.length - 1).map(w => w[0]).join('');
+      return `${ten}.${hoLot}`;
+    }
+
+    function updateUsernamePreview() {
+      const fullName = document.getElementById('f24-hoten').value;
+      const uname = computeUsernameJS(fullName);
+      document.getElementById('tn-username-preview').value = uname;
+      const mailInput = document.getElementById('f24-mail');
+      if (!mailInput.value || mailInput.value.endsWith('@gmail.com')) {
+        mailInput.value = uname ? `${uname}@gmail.com` : '';
+      }
+    }
+
+    // Tách chuỗi QR CCCD chuẩn Bộ Công An: SốCCCD|CMNDCũ|HọTên|NgàySinh(ddMMyyyy)|GiớiTính|ĐịaChỉ|NgàyCấp(ddMMyyyy)
+    function parseRawCCCDString(qrText) {
+      if (!qrText || !qrText.includes('|')) {
+        showToast('Chuỗi QR không đúng định dạng CCCD gắn chip Việt Nam!', 'error');
+        return;
+      }
+      const parts = qrText.split('|');
+      const formatFromDDMMYYYY = (s) => {
+        if (!s || s.length !== 8) return s || '';
+        return `${s.slice(0, 2)}/${s.slice(2, 4)}/${s.slice(4, 8)}`;
+      };
+      document.getElementById('f24-socccd').value = parts[0] || '';
+      document.getElementById('f24-hoten').value = parts[2] || '';
+      document.getElementById('f24-ngaysinh').value = formatFromDDMMYYYY(parts[3]);
+      document.getElementById('f24-gioitinh').value = parts[4] || 'Nam';
+      document.getElementById('f24-diachi').value = parts[5] || '';
+      document.getElementById('f24-ngaycap').value = formatFromDDMMYYYY(parts[6]);
+      updateUsernamePreview();
+      showToast(`Đã quét CCCD: ${parts[2]} (${parts[0]})`);
+    }
+
+    function startCCCDQrCamera() {
+      const readerEl = document.getElementById('cccd-qr-reader');
+      if (STATE.qrScanner) STATE.qrScanner.clear();
+      STATE.qrScanner = new Html5Qrcode('cccd-qr-reader');
+      STATE.qrScanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          parseRawCCCDString(decodedText);
+          stopCCCDQrCamera();
+        },
+        () => {}
+      ).catch(err => showToast('Không thể mở Camera: ' + err, 'error'));
+    }
+
+    function stopCCCDQrCamera() {
+      if (STATE.qrScanner) {
+        STATE.qrScanner.stop().then(() => STATE.qrScanner.clear()).catch(() => {});
+      }
+    }
+
+    function scanCCCDQrFromFile(input) {
+      if (!input.files || !input.files[0]) return;
+      const html5QrCode = new Html5Qrcode('cccd-qr-reader');
+      html5QrCode.scanFile(input.files[0], true)
+        .then(decodedText => parseRawCCCDString(decodedText))
+        .catch(() => showToast('Không nhận diện được mã QR trong bức ảnh này!', 'error'));
+    }
+
+    /**
+     * ========================================================================
+     * MODULE 4 & 8: SƠ ĐỒ PHÒNG CANVAS TRỰC QUAN & LỊCH SỬ GIAI ĐOẠN PHÒNG
+     * ========================================================================
+     */
+    function renderAdminRoomsCanvasTab() {
+      const khu = STATE.selectedKhu;
+      const rooms = STATE.rooms.filter(r => khu === 'ALL' || r.Khu_Tro === khu);
+      const total = rooms.length;
+      const occupied = rooms.filter(r => r.Trang_Thai === 'Đang thuê').length;
+      const vacant = rooms.filter(r => r.Trang_Thai === 'Trống').length;
+      const rate = total > 0 ? ((occupied / total) * 100).toFixed(1) : '0.0';
+
+      // Nhóm theo Khu & Tầng/Dãy
+      const floorGroups = {};
+      rooms.forEach(r => {
+        const key = `${r.Khu_Tro} — ${r.Day_Tang}`;
+        if (!floorGroups[key]) floorGroups[key] = [];
+        floorGroups[key].push(r);
+      });
+
+      return `
+        <div class="space-y-6">
+          <!-- Thanh tiêu đề + Nút thao tác nhanh -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Sơ Đồ Phòng Trọ Trực Quan (Canvas)</h1>
+              <p class="text-xs sm:text-sm text-slate-500">Bấm vào từng ô phòng để xem người đang ở, lịch sử từng giai đoạn thuê hoặc chỉnh sửa giá</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="openTenantModalForNewQR()" class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm">
+                <i data-lucide="qr-code" class="w-4 h-4"></i>
+                <span>Quét QR CCCD Tạo User</span>
+              </button>
+              <button onclick="openCanvasRoomEditor()" class="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Thêm / Chỉnh Ô Phòng Canvas</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Banner Thống kê chuẩn phong.html -->
+          <div class="bg-zinc-900 text-white rounded-3xl p-5 shadow-xl grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+              <p class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Tổng số phòng</p>
+              <p class="text-2xl font-black mt-1">${total}</p>
+            </div>
+            <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3">
+              <p class="text-[10px] uppercase tracking-widest text-rose-300 font-bold">Tỷ lệ lấp đầy</p>
+              <p class="text-2xl font-black text-rose-400 mt-1">${rate}%</p>
+            </div>
+            <div class="rounded-2xl border border-teal-500/30 bg-teal-500/10 px-4 py-3">
+              <p class="text-[10px] uppercase tracking-widest text-teal-300 font-bold">Đang thuê</p>
+              <p class="text-2xl font-black text-teal-400 mt-1">${occupied}</p>
+            </div>
+            <div class="rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3">
+              <p class="text-[10px] uppercase tracking-widest text-blue-300 font-bold">Phòng trống</p>
+              <p class="text-2xl font-black text-blue-400 mt-1">${vacant}</p>
+            </div>
+          </div>
+
+          <!-- Lưới Sơ đồ phòng theo từng Dãy/Tầng -->
+          <div class="space-y-4">
+            ${Object.keys(floorGroups).map(groupName => `
+              <div class="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex flex-col md:flex-row gap-4 shadow-2xs">
+                <div class="w-full md:w-36 bg-zinc-900 text-white rounded-2xl p-3 flex flex-col items-center justify-center text-center shrink-0">
+                  <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Khu / Tầng</span>
+                  <span class="text-xs font-black mt-1">${groupName}</span>
+                </div>
+                <div class="flex-1 flex flex-wrap gap-3 items-center">
+                  ${floorGroups[groupName].map(r => {
+                    const isVacant = r.Trang_Thai === 'Trống';
+                    const cardStyle = isVacant
+                      ? 'bg-blue-500/10 border-blue-500/30 hover:border-blue-500'
+                      : 'bg-teal-500/10 border-teal-500/30 hover:border-teal-500';
+                    return `
+                      <div onclick="openRoomDetailAndHistoryModal('${r.Ma_Phong}')"
+                           class="room-card-grid cursor-pointer relative rounded-2xl border p-3 w-[145px] min-h-[125px] flex flex-col justify-between ${cardStyle}">
+                        <div class="flex items-center justify-between">
+                          <span class="text-sm font-black">${r.Ma_Phong}</span>
+                          <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/80 dark:bg-zinc-900/80">${r.So_Nguoi_Hien_Tai}/${r.So_Nguoi_Toi_Da} người</span>
+                        </div>
+                        <div class="my-1">
+                          <p class="text-[11px] font-bold truncate" title="${r.Danh_Sach_Nguoi_O || 'Phòng trống'}">
+                            ${r.Danh_Sach_Nguoi_O || 'Đang trống'}
+                          </p>
+                          <p class="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                            Giá: ${Number(String(r.Gia_Phong).replace(/,/g,'')).toLocaleString('vi-VN')}đ
+                          </p>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] font-semibold border-t border-black/5 dark:border-white/5 pt-1">
+                          <span>⚡${r.Chi_So_Dien_Hien_Tai}</span>
+                          <span>💧${r.Chi_So_Nuoc_Hien_Tai}</span>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }  
+/**
+     * ========================================================================
+     * MODULE 5: ĐĂNG NHẬP, PHÂN QUYỀN SIDEBAR & CHUYỂN TAB
+     * ========================================================================
+     */
+    function openLoginModal() {
+      const m = document.getElementById('login-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeLoginModal() {
+      const m = document.getElementById('login-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value.trim();
+      const res = await apiCall('login', { username, password });
+
+      if (res && res.success) {
+        STATE.user = res.user;
+        closeLoginModal();
+        document.getElementById('public-view').classList.add('hidden');
+        document.getElementById('app-shell').classList.remove('hidden');
+
+        document.getElementById('current-user-name').innerText = STATE.user.Ho_Ten;
+        document.getElementById('current-user-sub').innerText = `${STATE.user.Username} • ${STATE.user.Ma_Phong || 'Toàn hệ thống'}`;
+        document.getElementById('badge-user-role').innerText = STATE.user.Role.toUpperCase();
+
+        // Ẩn bộ lọc Khu trọ nếu là User thuê phòng
+        document.getElementById('sidebar-khu-selector').classList.toggle('hidden', STATE.user.Role === 'User');
+
+        await loadRoleData();
+      } else {
+        showToast(res.message || 'Đăng nhập thất bại!', 'error');
+      }
+    }
+
+    function logoutUser() {
+      stopMeterLiveCamera();
+      stopCCCDQrCamera();
+      STATE.user = null;
+      document.getElementById('app-shell').classList.add('hidden');
+      document.getElementById('public-view').classList.remove('hidden');
+      showToast('Đã đăng xuất khỏi hệ thống!');
+    }
+
+    async function loadRoleData() {
+      const res = await apiCall('getAppData', { user: STATE.user });
+      if (res && res.success) {
+        STATE.settings = res.settings || {};
+        STATE.rooms = res.rooms || [];
+        STATE.tenants = res.tenants || [];
+        STATE.roommates = res.roommates || [];
+        STATE.profile = res.profile || {};
+        STATE.history = res.history || [];
+        STATE.bills = res.bills || [];
+        STATE.assets = res.assets || [];
+        STATE.repairs = res.repairs || [];
+        STATE.violations = res.violations || [];
+        STATE.bookings = res.bookings || [];
+        STATE.accounts = res.accounts || [];
+
+        STATE.activeTab = STATE.user.Role === 'User' ? 'user-overview' : 'rooms';
+        renderSidebarNav();
+        renderActiveTab();
+      }
+    }
+
+    function onGlobalKhuChange() {
+      STATE.selectedKhu = document.getElementById('global-khu-filter').value;
+      renderActiveTab();
+    }
+
+    function renderSidebarNav() {
+      const nav = document.getElementById('sidebar-nav');
+      const role = STATE.user ? STATE.user.Role : 'User';
+
+      const menuItems = (role === 'Admin' || role === 'Manager') ? [
+        { id: 'rooms', icon: 'layout-grid', label: 'Sơ đồ phòng (Canvas)' },
+        { id: 'tenants', icon: 'users', label: 'Người thuê (24 trường & QR)' },
+        { id: 'history', icon: 'history', label: 'Lịch sử giai đoạn phòng' },
+        { id: 'meters-bills', icon: 'gauge', label: 'Điện nước Live & Hóa đơn' },
+        { id: 'assets-repairs', icon: 'wrench', label: 'Cơ sở vật chất & Sửa chữa' },
+        { id: 'violations', icon: 'triangle-alert', label: 'Quản lý Vi phạm' },
+        { id: 'bookings', icon: 'calendar-check', label: 'Khách đăng ký thuê' },
+        ...(role === 'Admin' ? [{ id: 'settings', icon: 'settings', label: 'Cài đặt & Phân quyền' }] : [])
+      ] : [
+        { id: 'user-overview', icon: 'house', label: 'Phòng của tôi & Bạn cùng phòng' },
+        { id: 'user-profile', icon: 'user-check', label: 'Hồ sơ cá nhân (24 trường)' },
+        { id: 'user-meters-bills', icon: 'qr-code', label: 'Nhập điện nước & Thanh toán QR' },
+        { id: 'user-repairs', icon: 'wrench', label: 'Cơ sở vật chất & Báo sửa chữa' },
+        { id: 'user-violations', icon: 'bell-ring', label: 'Nhắc nhở & Nội quy phòng' }
+      ];
+
+      nav.innerHTML = menuItems.map(item => {
+        const active = STATE.activeTab === item.id;
+        return `
+          <button onclick="switchTab('${item.id}')"
+                  class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${active ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 font-black shadow-2xs' : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'}">
+            <i data-lucide="${item.icon}" class="w-4 h-4 shrink-0"></i>
+            <span class="truncate">${item.label}</span>
+          </button>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function switchTab(tabId) {
+      stopMeterLiveCamera();
+      STATE.activeTab = tabId;
+      renderSidebarNav();
+      renderActiveTab();
+    }
+
+    function renderActiveTab() {
+      const container = document.getElementById('main-tab-content');
+      switch (STATE.activeTab) {
+        case 'rooms':
+          container.innerHTML = renderAdminRoomsCanvasTab();
+          break;
+        case 'tenants':
+          container.innerHTML = renderAdminTenantsTab();
+          break;
+        case 'history':
+          container.innerHTML = renderRoomHistoryTab();
+          break;
+        case 'meters-bills':
+          container.innerHTML = renderMetersAndBillsTab(false);
+          break;
+        case 'assets-repairs':
+          container.innerHTML = renderAssetsAndRepairsTab(false);
+          break;
+        case 'violations':
+          container.innerHTML = renderViolationsTab(false);
+          break;
+        case 'bookings':
+          container.innerHTML = renderBookingsTab();
+          break;
+        case 'settings':
+          container.innerHTML = renderSettingsAndCanvasConfigTab();
+          break;
+        // --- CÁC TAB DÀNH RIÊNG CHO USER THUÊ TRỌ ---
+        case 'user-overview':
+          container.innerHTML = renderUserRoomOverviewTab();
+          break;
+        case 'user-profile':
+          container.innerHTML = renderUserProfile24Tab();
+          break;
+        case 'user-meters-bills':
+          container.innerHTML = renderMetersAndBillsTab(true);
+          break;
+        case 'user-repairs':
+          container.innerHTML = renderAssetsAndRepairsTab(true);
+          break;
+        case 'user-violations':
+          container.innerHTML = renderViolationsTab(true);
+          break;
+      }
+      lucide.createIcons();
+    }
+
+    /**
+     * ========================================================================
+     * MODULE 6: QUẢN LÝ NGƯỜI THUÊ (24 TRƯỜNG) & QUÉT QR CCCD TẠO USER
+     * ========================================================================
+     */
+    function renderAdminTenantsTab() {
+      const khu = STATE.selectedKhu;
+      const list = STATE.tenants.filter(t => khu === 'ALL' || t.Khu_Tro === khu);
+
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 class="text-2xl font-black">Quản Lý Người Thuê Trọ (Chuẩn 24 Trường & eKYC CCCD)</h1>
+              <p class="text-xs text-slate-500">Tài khoản tự động đặt theo quy tắc <code>ten.holot</code>, mật khẩu mặc định là Số điện thoại</p>
+            </div>
+            <button onclick="openTenantModalForNewQR()" class="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md">
+              <i data-lucide="qr-code" class="w-4 h-4"></i>
+              <span>Quét QR CCCD Tạo User Mới</span>
+            </button>
+          </div>
+
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-2xs">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-900 text-white font-bold uppercase text-[10px] tracking-wider">
+                    <th class="p-3">Mã KH</th>
+                    <th class="p-3">Tài khoản</th>
+                    <th class="p-3">Phòng</th>
+                    <th class="p-3">Họ tên</th>
+                    <th class="p-3">Ngày sinh</th>
+                    <th class="p-3">Số CCCD</th>
+                    <th class="p-3">Điện thoại (MK)</th>
+                    <th class="p-3">Mã lớp / Trường</th>
+                    <th class="p-3">Người thân & SĐT</th>
+                    <th class="p-3">Trạng thái</th>
+                    <th class="p-3 text-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-zinc-800">
+                  ${list.map(t => `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-zinc-800/50">
+                      <td class="p-3 font-mono font-bold">${t.Ma_KH}</td>
+                      <td class="p-3 font-mono font-black text-teal-600 dark:text-teal-400">${t.Username}</td>
+                      <td class="p-3 font-bold">${t.Ma_Phong}</td>
+                      <td class="p-3 font-bold">${t['Họ tên']} <span class="block text-[10px] text-slate-400 font-normal">${t.Vai_Tro_Phong}</span></td>
+                      <td class="p-3">${t['Ngày sinh'] || '-'}</td>
+                      <td class="p-3 font-mono">${t['Số CCCD'] || '<span class="text-amber-500">Chờ bổ sung</span>'}</td>
+                      <td class="p-3 font-mono font-bold">${t['Điện thoại'] || '-'}</td>
+                      <td class="p-3 max-w-[180px] truncate" title="${t['Mã lớp'] || ''}">${t['Mã lớp'] || '-'}</td>
+                      <td class="p-3">${t['Quan hệ'] || '-'}: ${t['SDT người thân'] || '-'}</td>
+                      <td class="p-3">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${t.Trang_Thai_O === 'Đang ở' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-slate-200 text-slate-600'}">
+                          ${t.Trang_Thai_O}
+                        </span>
+                      </td>
+                      <td class="p-3 text-center">
+                        <button onclick="openTenantModalForEdit('${t.Ma_KH}')" class="px-2.5 py-1 rounded-lg bg-teal-500/10 text-teal-600 font-bold hover:bg-teal-500/20">
+                          Sửa 24 trường
+                        </button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function populateRoomSelectForTenant(selectedRoom) {
+      const khu = document.getElementById('tn-khutro').value;
+      const select = document.getElementById('tn-maphong');
+      const rooms = STATE.rooms.filter(r => r.Khu_Tro === khu);
+      select.innerHTML = rooms.map(r => `<option value="${r.Ma_Phong}" ${r.Ma_Phong === selectedRoom ? 'selected' : ''}>${r.Ma_Phong} (${r.Trang_Thai})</option>`).join('');
+    }
+
+    function openTenantModalForNewQR() {
+      document.getElementById('form-tenant-24').reset();
+      document.getElementById('tn-mode').value = 'create';
+      document.getElementById('tn-makh').value = '';
+      document.getElementById('tenant-modal-title').innerText = 'Quét Mã QR CCCD Tạo Tài Khoản Người Thuê Mới';
+      populateRoomSelectForTenant();
+      const modal = document.getElementById('tenant-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function openTenantModalForEdit(maKH) {
+      const t = STATE.tenants.find(item => item.Ma_KH === maKH) || STATE.profile;
+      if (!t) return;
+      document.getElementById('tn-mode').value = 'edit';
+      document.getElementById('tn-makh').value = t.Ma_KH;
+      document.getElementById('tn-khutro').value = t.Khu_Tro || 'Cái Răng';
+      populateRoomSelectForTenant(t.Ma_Phong);
+      document.getElementById('tn-username-preview').value = t.Username || '';
+      document.getElementById('tn-vaitrophong').value = t.Vai_Tro_Phong || 'Thành viên';
+
+      const mapFields = {
+        'f24-hoten': 'Họ tên', 'f24-ngaysinh': 'Ngày sinh', 'f24-malop': 'Mã lớp',
+        'f24-socccd': 'Số CCCD', 'f24-gioitinh': 'Giới tính', 'f24-diachi': 'Địa chỉ',
+        'f24-dienthoai': 'Điện thoại', 'f24-biensoxe': 'Biển số xe', 'f24-loaixe': 'Loại xe',
+        'f24-sotaikhoan': 'Số tài khoản', 'f24-nganhang': 'Ngân hàng', 'f24-chinhanh': 'Chi nhánh',
+        'f24-anhthe': 'Ảnh thẻ', 'f24-anhtruoc': 'Ảnh trước', 'f24-anhsau': 'Ảnh sau',
+        'f24-ngaycap': 'Ngày cấp', 'f24-noicap': 'Nơi cấp', 'f24-hotennguoithan': 'Họ tên người thân',
+        'f24-quanhe': 'Quan hệ', 'f24-sdtnguoithan': 'SDT người thân', 'f24-pdfcccd': 'PDF CCCD',
+        'f24-thoihan': 'Thời hạn', 'f24-mail': 'Mail', 'f24-ghichu': 'Ghi chú'
+      };
+      Object.keys(mapFields).forEach(id => {
+        const colName = mapFields[id];
+        document.getElementById(id).value = t[colName] || '';
+      });
+
+      const modal = document.getElementById('tenant-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeTenantModal() {
+      stopCCCDQrCamera();
+      const modal = document.getElementById('tenant-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function handleSaveTenantForm(e) {
+      e.preventDefault();
+      const mode = document.getElementById('tn-mode').value;
+      if (mode === 'create') {
+        const payload = {
+          khuTro: document.getElementById('tn-khutro').value,
+          maPhong: document.getElementById('tn-maphong').value,
+          vaiTroPhong: document.getElementById('tn-vaitrophong').value,
+          hoTen: document.getElementById('f24-hoten').value,
+          ngaySinh: document.getElementById('f24-ngaysinh').value,
+          maLop: document.getElementById('f24-malop').value,
+          soCCCD: document.getElementById('f24-socccd').value,
+          gioiTinh: document.getElementById('f24-gioitinh').value,
+          diaChi: document.getElementById('f24-diachi').value,
+          dienThoai: document.getElementById('f24-dienthoai').value,
+          bienSoXe: document.getElementById('f24-biensoxe').value,
+          loaiXe: document.getElementById('f24-loaixe').value,
+          soTaiKhoan: document.getElementById('f24-sotaikhoan').value,
+          nganHang: document.getElementById('f24-nganhang').value,
+          chiNhanh: document.getElementById('f24-chinhanh').value,
+          anhTheBase64: document.getElementById('f24-anhthe').value,
+          anhTruocBase64: document.getElementById('f24-anhtruoc').value,
+          anhSauBase64: document.getElementById('f24-anhsau').value,
+          ngayCap: document.getElementById('f24-ngaycap').value,
+          noiCap: document.getElementById('f24-noicap').value,
+          hoTenNguoiThan: document.getElementById('f24-hotennguoithan').value,
+          quanHe: document.getElementById('f24-quanhe').value,
+          sdtNguoiThan: document.getElementById('f24-sdtnguoithan').value,
+          pdfCCCD: document.getElementById('f24-pdfcccd').value,
+          thoiHan: document.getElementById('f24-thoihan').value,
+          mail: document.getElementById('f24-mail').value,
+          ghiChu: document.getElementById('f24-ghichu').value
+        };
+        const res = await apiCall('createAccountByQR', payload);
+        if (res && res.success) {
+          showToast(res.message);
+          closeTenantModal();
+          await loadRoleData();
+        }
+      } else {
+        const payload = {
+          Ma_KH: document.getElementById('tn-makh').value,
+          Khu_Tro: document.getElementById('tn-khutro').value,
+          Ma_Phong: document.getElementById('tn-maphong').value,
+          Vai_Tro_Phong: document.getElementById('tn-vaitrophong').value,
+          'Họ tên': document.getElementById('f24-hoten').value,
+          'Ngày sinh': document.getElementById('f24-ngaysinh').value,
+          'Mã lớp': document.getElementById('f24-malop').value,
+          'Số CCCD': document.getElementById('f24-socccd').value,
+          'Giới tính': document.getElementById('f24-gioitinh').value,
+          'Địa chỉ': document.getElementById('f24-diachi').value,
+          'Điện thoại': document.getElementById('f24-dienthoai').value,
+          'Biển số xe': document.getElementById('f24-biensoxe').value,
+          'Loại xe': document.getElementById('f24-loaixe').value,
+          'Số tài khoản': document.getElementById('f24-sotaikhoan').value,
+          'Ngân hàng': document.getElementById('f24-nganhang').value,
+          'Chi nhánh': document.getElementById('f24-chinhanh').value,
+          'Ảnh thẻ': document.getElementById('f24-anhthe').value,
+          'Ảnh trước': document.getElementById('f24-anhtruoc').value,
+          'Ảnh sau': document.getElementById('f24-anhsau').value,
+          'Ngày cấp': document.getElementById('f24-ngaycap').value,
+          'Nơi cấp': document.getElementById('f24-noicap').value,
+          'Họ tên người thân': document.getElementById('f24-hotennguoithan').value,
+          'Quan hệ': document.getElementById('f24-quanhe').value,
+          'SDT người thân': document.getElementById('f24-sdtnguoithan').value,
+          'PDF CCCD': document.getElementById('f24-pdfcccd').value,
+          'Thời hạn': document.getElementById('f24-thoihan').value,
+          'Mail': document.getElementById('f24-mail').value,
+          'Ghi chú': document.getElementById('f24-ghichu').value
+        };
+        const res = await apiCall('saveTenantProfile', payload);
+        if (res && res.success) {
+          showToast(res.message);
+          closeTenantModal();
+          await loadRoleData();
+        }
+      }
+    }
+
+    /**
+     * ========================================================================
+     * MODULE 7: LỊCH SỬ CỦA PHÒNG THEO TỪNG GIAI ĐOẠN NGƯỜI THUÊ (YÊU CẦU 4)
+     * ========================================================================
+     */
+    function renderRoomHistoryTab(filterRoomCode = '') {
+      const khu = STATE.selectedKhu;
+      const list = STATE.history.filter(h => {
+        if (filterRoomCode && h.Ma_Phong !== filterRoomCode) return false;
+        if (khu !== 'ALL' && h.Khu_Tro !== khu) return false;
+        return true;
+      });
+
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 class="text-2xl font-black">Lịch Sử Phòng Theo Từng Giai Đoạn Người Thuê</h1>
+              <p class="text-xs text-slate-500">Theo dõi đầy đủ mọi biến động chuyển phòng, thêm/bớt thành viên và thay đổi giá thuê theo thời gian</p>
+            </div>
+            <button onclick="promptNewRoomStage()" class="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl">
+              <i data-lucide="git-branch-plus" class="w-4 h-4"></i>
+              <span>Tạo Giai Đoạn Thuê Mới Cho Phòng</span>
+            </button>
+          </div>
+
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-2xs">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-900 text-white font-bold uppercase text-[10px]">
+                  <th class="p-3.5">Mã LS</th>
+                  <th class="p-3.5">Khu trọ</th>
+                  <th class="p-3.5">Mã phòng</th>
+                  <th class="p-3.5">Giai đoạn</th>
+                  <th class="p-3.5">Từ kỳ → Đến kỳ</th>
+                  <th class="p-3.5">Danh sách người thuê trong giai đoạn</th>
+                  <th class="p-3.5">Đại diện HĐ</th>
+                  <th class="p-3.5 text-right">Giá thuê</th>
+                  <th class="p-3.5">Trạng thái</th>
+                  <th class="p-3.5">Ghi chú biến động</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 dark:divide-zinc-800">
+                ${list.map(h => `
+                  <tr class="hover:bg-slate-50 dark:hover:bg-zinc-800/50">
+                    <td class="p-3.5 font-mono font-bold">${h.Ma_Lich_Su}</td>
+                    <td class="p-3.5">${h.Khu_Tro}</td>
+                    <td class="p-3.5 font-black text-teal-600 dark:text-teal-400">${h.Ma_Phong}</td>
+                    <td class="p-3.5 font-bold">${h.Giai_Doan}</td>
+                    <td class="p-3.5 font-mono font-semibold">${h.Tu_Ky} → ${h.Den_Ky}</td>
+                    <td class="p-3.5 font-bold">${h.Danh_Sach_Nguoi_Thue}</td>
+                    <td class="p-3.5">${h.Nguoi_Dai_Dien_HD}</td>
+                    <td class="p-3.5 text-right font-mono font-bold">${Number(String(h.Gia_Thue_Ap_Dung).replace(/,/g,'')).toLocaleString('vi-VN')}đ</td>
+                    <td class="p-3.5">
+                      <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${h.Trang_Thai_Giai_Doan === 'Đang hiệu lực' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600'}">
+                        ${h.Trang_Thai_Giai_Doan}
+                      </span>
+                    </td>
+                    <td class="p-3.5 text-slate-500">${h.Ghi_Chu || '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function openRoomDetailAndHistoryModal(maPhong) {
+      STATE.activeTab = 'history';
+      renderSidebarNav();
+      document.getElementById('main-tab-content').innerHTML = renderRoomHistoryTab(maPhong);
+      lucide.createIcons();
+      showToast(`Đang xem lịch sử các giai đoạn người thuê của phòng ${maPhong}`);
+    }
+
+    async function promptNewRoomStage() {
+      const maPhong = prompt('Nhập Mã phòng cần ghi nhận giai đoạn mới (VD: CR-P01, BT-P08):', 'CR-P01');
+      if (!maPhong) return;
+      const danhSachNguoiThue = prompt('Nhập danh sách người thuê giai đoạn mới:', '');
+      if (!danhSachNguoiThue) return;
+      const nguoiDaiDien = prompt('Người đại diện hợp đồng:', danhSachNguoiThue.split(',')[0].trim());
+      const giaThue = prompt('Giá phòng áp dụng (VNĐ):', '1500000');
+      const ghiChu = prompt('Lý do thay đổi giai đoạn (VD: Khách cũ trả phòng / Thêm người ở ghép):', 'Chuyển giao giai đoạn mới');
+
+      const roomObj = STATE.rooms.find(r => r.Ma_Phong === maPhong);
+      const res = await apiCall('updateRoomStage', {
+        khuTro: roomObj ? roomObj.Khu_Tro : 'Cái Răng',
+        maPhong,
+        danhSachNguoiThue,
+        nguoiDaiDien,
+        giaThue,
+        ghiChu,
+        closeCurrentStage: true
+      });
+      if (res && res.success) {
+        showToast(res.message);
+        await loadRoleData();
+      }
+    }
+
+    /**
+     * ========================================================================
+     * MODULE 8: NHẬP ĐIỆN NƯỚC BẰNG LIVE CAMERA & THANH TOÁN VIETQR (YÊU CẦU 5 & 6)
+     * ========================================================================
+     */
+    function renderMetersAndBillsTab(isUserMode = false) {
+      const khu = STATE.selectedKhu;
+      const rooms = isUserMode
+        ? STATE.rooms
+        : STATE.rooms.filter(r => khu === 'ALL' || r.Khu_Tro === khu);
+
+      const bills = isUserMode
+        ? STATE.bills
+        : STATE.bills.filter(b => khu === 'ALL' || b.Khu_Tro === khu);
+
+      const minPercent = STATE.settings['TY_LE_TRA_TOI_THIEU'] || 30;
+      const minVND = Number(STATE.settings['SO_TIEN_TRA_TOI_THIEU'] || 500000);
+
+      return `
+        <div class="space-y-6">
+          <!-- Khung Nhập chỉ số Điện Nước bằng Live Camera -->
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-zinc-800 pb-4">
+              <div>
+                <h2 class="text-xl font-black">Nhập Chỉ Số Điện Nước Trực Tiếp Bằng Live Camera</h2>
+                <p class="text-xs text-slate-500">
+                  ${isUserMode
+                    ? `Bạn đang nhập chỉ số cho phòng <b>${STATE.user.Ma_Phong}</b> (Mở cổng từ ngày ${STATE.settings['NGAY_MO_NHAP_DIEN_NUOC'] || 25} đến ngày ${STATE.settings['NGAY_DONG_NHAP_DIEN_NUOC'] || 5} hàng tháng)`
+                    : 'Quyền Admin / Manager: Nhập được cho tất cả các phòng trong hệ thống'}
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <button type="button" onclick="startMeterLiveCamera()" class="inline-flex items-center gap-1.5 bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl">
+                  <i data-lucide="video" class="w-4 h-4"></i>
+                  <span>Bật Live Camera Chụp Đồng Hồ</span>
+                </button>
+                <button type="button" onclick="stopMeterLiveCamera()" class="inline-flex items-center gap-1.5 bg-slate-200 dark:bg-zinc-800 text-xs font-bold px-3 py-2 rounded-xl">
+                  <span>Tắt Camera</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Luồng Video Live Camera & 2 Nút chụp ảnh Đồng hồ Điện / Nước -->
+            <div id="live-camera-box" class="hidden bg-zinc-950 text-white rounded-2xl p-4 space-y-3">
+              <video id="meter-live-video" autoplay playsinline class="w-full max-w-md mx-auto rounded-xl border border-white/20"></video>
+              <canvas id="meter-capture-canvas" class="hidden"></canvas>
+              <div class="flex justify-center gap-3">
+                <button type="button" onclick="captureMeterSnapshot('dien')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
+                  ⚡ Chụp Ảnh Đồng Hồ Điện
+                </button>
+                <button type="button" onclick="captureMeterSnapshot('nuoc')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
+                  💧 Chụp Ảnh Đồng Hồ Nước
+                </button>
+              </div>
+            </div>
+
+            <form onsubmit="handleSubmitMeterReading(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs font-bold mb-1">Chọn Phòng *</label>
+                <select id="mt-maphong" onchange="onMeterRoomChange()" class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-bold">
+                  ${rooms.map(r => `<option value="${r.Ma_Phong}" data-diencu="${r.Chi_So_Dien_Hien_Tai}" data-nuoccu="${r.Chi_So_Nuoc_Hien_Tai}">${r.Ma_Phong} (${r.Danh_Sach_Nguoi_O || 'Trống'})</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Kỳ hóa đơn *</label>
+                <input type="text" id="mt-kyhd" value="11-122026" required class="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-3 py-2 text-xs font-bold" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Chỉ số Điện (Cũ → Mới) *</label>
+                <div class="flex gap-1.5">
+                  <input type="number" id="mt-diencu" value="${rooms[0] ? rooms[0].Chi_So_Dien_Hien_Tai : 0}" class="w-1/2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 px-2.5 py-2 text-xs font-mono" />
+                  <input type="number" id="mt-dienmoi" required placeholder="Số mới" class="w-1/2 rounded-xl border border-teal-500 bg-white dark:bg-zinc-950 px-2.5 py-2 text-xs font-mono font-bold" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Chỉ số Nước (Cũ → Mới) *</label>
+                <div class="flex gap-1.5">
+                  <input type="number" id="mt-nuoccu" value="${rooms[0] ? rooms[0].Chi_So_Nuoc_Hien_Tai : 0}" class="w-1/2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 px-2.5 py-2 text-xs font-mono" />
+                  <input type="number" id="mt-nuocmoi" required placeholder="Số mới" class="w-1/2 rounded-xl border border-teal-500 bg-white dark:bg-zinc-950 px-2.5 py-2 text-xs font-mono font-bold" />
+                </div>
+              </div>
+
+              <!-- Preview ảnh chụp live đồng hồ -->
+              <div class="sm:col-span-2 flex items-center gap-3 bg-slate-50 dark:bg-zinc-950 p-3 rounded-2xl border border-slate-200 dark:border-zinc-800">
+                <input type="hidden" id="mt-anhdien-b64" />
+                <img id="preview-anh-dien" src="https://placehold.co/120x80?text=Anh+Dien" class="w-24 h-16 object-cover rounded-xl border" />
+                <div class="text-xs">
+                  <p class="font-bold">Ảnh chụp Live Đồng hồ Điện</p>
+                  <p class="text-[11px] text-slate-400">Chụp trực tiếp từ Camera để đối chiếu minh bạch</p>
+                </div>
+              </div>
+
+              <div class="sm:col-span-2 flex items-center gap-3 bg-slate-50 dark:bg-zinc-950 p-3 rounded-2xl border border-slate-200 dark:border-zinc-800">
+                <input type="hidden" id="mt-anhnuoc-b64" />
+                <img id="preview-anh-nuoc" src="https://placehold.co/120x80?text=Anh+Nuoc" class="w-24 h-16 object-cover rounded-xl border" />
+                <div class="text-xs">
+                  <p class="font-bold">Ảnh chụp Live Đồng hồ Nước</p>
+                  <p class="text-[11px] text-slate-400">Chụp trực tiếp từ Camera để đối chiếu minh bạch</p>
+                </div>
+              </div>
+
+              <div class="sm:col-span-4 flex justify-end">
+                <button type="submit" class="bg-teal-500 hover:bg-teal-600 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md">
+                  Lưu Chỉ Số & Tự Động Tính Hóa Đơn
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Danh sách Hóa đơn & Thanh toán VietQR (Đủ hoặc 1 phần) + Gửi Mail -->
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-xs">
+            <div class="p-4 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-black">Danh Sách Hóa Đơn Tiền Trọ & Thanh Toán VietQR</h3>
+                <p class="text-xs text-slate-500">Hỗ trợ thanh toán 100% hoặc thanh toán 1 phần (tối thiểu ${minPercent}% hoặc ${minVND.toLocaleString('vi-VN')}đ) kèm hẹn ngày trả đủ</p>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-900 text-white font-bold uppercase text-[10px]">
+                    <th class="p-3">Mã HĐ / Kỳ</th>
+                    <th class="p-3">Phòng</th>
+                    <th class="p-3">Người ở</th>
+                    <th class="p-3">Điện (Cũ-Mới)</th>
+                    <th class="p-3">Nước (Cũ-Mới)</th>
+                    <th class="p-3 text-right">Tổng Bill</th>
+                    <th class="p-3 text-right">Đã trả</th>
+                    <th class="p-3 text-right">Còn nợ</th>
+                    <th class="p-3">Trạng thái & Ngày hẹn trả đủ</th>
+                    <th class="p-3 text-center">Thanh toán QR & Báo Mail</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-zinc-800">
+                  ${bills.slice().reverse().slice(0, 45).map(b => {
+                    const tong = Number(String(b.Tong_Cong).replace(/,/g,'') || 0);
+                    const daTra = Number(String(b.So_Tien_Da_Tra).replace(/,/g,'') || 0);
+                    const conNo = Number(String(b.So_Tien_Con_No).replace(/,/g,'') || 0);
+                    return `
+                      <tr class="hover:bg-slate-50 dark:hover:bg-zinc-800/50">
+                        <td class="p-3 font-mono font-bold">${b.Ma_HD}<span class="block text-[10px] text-teal-500">Kỳ: ${b.Ky_Hoa_Don}</span></td>
+                        <td class="p-3 font-black">${b.Ma_Phong}</td>
+                        <td class="p-3 max-w-[160px] truncate">${b.Nguoi_Thue_Ky_Nay}</td>
+                        <td class="p-3 font-mono">${b.Dien_Cu} → ${b.Dien_Moi} (${b.Dien_Tieu_Thu} kWh)</td>
+                        <td class="p-3 font-mono">${b.Nuoc_Cu} → ${b.Nuoc_Moi} (${b.Nuoc_Tieu_Thu} m³)</td>
+                        <td class="p-3 text-right font-mono font-bold">${tong.toLocaleString('vi-VN')}đ</td>
+                        <td class="p-3 text-right font-mono text-emerald-600 font-bold">${daTra.toLocaleString('vi-VN')}đ</td>
+                        <td class="p-3 text-right font-mono text-red-500 font-bold">${conNo.toLocaleString('vi-VN')}đ</td>
+                        <td class="p-3">
+                          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${conNo === 0 ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600'}">
+                            ${b.Trang_Thai_Thanh_Toan}
+                          </span>
+                          ${b.Ngay_Du_Kien_Tra_Du ? `<span class="block text-[10px] text-orange-500 font-semibold mt-0.5">Hẹn: ${b.Ngay_Du_Kien_Tra_Du}</span>` : ''}
+                        </td>
+                        <td class="p-3 text-center space-x-1">
+                          <button onclick="openVietQRPaymentModal('${b.Ma_HD}')" class="px-2.5 py-1.5 rounded-xl bg-teal-500 text-white font-bold text-[11px] hover:bg-teal-600">
+                            QR Thanh toán
+                          </button>
+                          ${!isUserMode ? `
+                            <button onclick="triggerSendBillEmail('${b.Ma_HD}')" class="px-2.5 py-1.5 rounded-xl bg-blue-500/15 text-blue-600 font-bold text-[11px] hover:bg-blue-500/25">
+                              Gửi Mail Bill
+                            </button>
+                          ` : ''}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function onMeterRoomChange() {
+      const sel = document.getElementById('mt-maphong');
+      const opt = sel.options[sel.selectedIndex];
+      if (!opt) return;
+      document.getElementById('mt-diencu').value = opt.getAttribute('data-diencu') || 0;
+      document.getElementById('mt-nuoccu').value = opt.getAttribute('data-nuoccu') || 0;
+    }
+
+    async function startMeterLiveCamera() {
+      const box = document.getElementById('live-camera-box');
+      const video = document.getElementById('meter-live-video');
+      try {
+        STATE.liveStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        });
+        video.srcObject = STATE.liveStream;
+        box.classList.remove('hidden');
+      } catch (err) {
+        showToast('Không thể truy cập Camera trực tiếp: ' + err.message, 'error');
+      }
+    }
+
+    function stopMeterLiveCamera() {
+      if (STATE.liveStream) {
+        STATE.liveStream.getTracks().forEach(t => t.stop());
+        STATE.liveStream = null;
+      }
+      const box = document.getElementById('live-camera-box');
+      if (box) box.classList.add('hidden');
+    }
+
+    function captureMeterSnapshot(type) {
+      const video = document.getElementById('meter-live-video');
+      const canvas = document.getElementById('meter-capture-canvas');
+      if (!video || !video.videoWidth) {
+        showToast('Camera chưa sẵn sàng!', 'warning');
+        return;
+      }
+      canvas.width = 640;
+      canvas.height = Math.round((video.videoHeight / video.videoWidth) * 640);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Đóng dấu thời gian thực lên ảnh đồng hồ
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.fillRect(0, canvas.height - 32, canvas.width, 32);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(`Dormio Live Meter • ${new Date().toLocaleString('vi-VN')}`, 12, canvas.height - 10);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      if (type === 'dien') {
+        document.getElementById('mt-anhdien-b64').value = dataUrl;
+        document.getElementById('preview-anh-dien').src = dataUrl;
+        showToast('Đã chụp ảnh Live đồng hồ Điện!');
+      } else {
+        document.getElementById('mt-anhnuoc-b64').value = dataUrl;
+        document.getElementById('preview-anh-nuoc').src = dataUrl;
+        showToast('Đã chụp ảnh Live đồng hồ Nước!');
+      }
+    }
+
+    async function handleSubmitMeterReading(e) {
+      e.preventDefault();
+      const payload = {
+        user: STATE.user,
+        maPhong: document.getElementById('mt-maphong').value,
+        kyHoaDon: document.getElementById('mt-kyhd').value,
+        dienCu: document.getElementById('mt-diencu').value,
+        dienMoi: document.getElementById('mt-dienmoi').value,
+        nuocCu: document.getElementById('mt-nuoccu').value,
+        nuocMoi: document.getElementById('mt-nuocmoi').value,
+        anhDienBase64: document.getElementById('mt-anhdien-b64').value,
+        anhNuocBase64: document.getElementById('mt-anhnuoc-b64').value
+      };
+      const res = await apiCall('submitMeterReading', payload);
+      if (res && res.success) {
+        showToast(res.message);
+        stopMeterLiveCamera();
+        await loadRoleData();
+      } else if (res) {
+        showToast(res.message, 'error');
+      }
+    }
+
+    /**
+     * Thanh toán qua mã VietQR (100% hoặc 1 phần theo giới hạn tối thiểu + Hẹn ngày trả đủ)
+     * Sau khi thanh toán thành công sẽ gửi Email cho tất cả User trong phòng.
+     */
+    async function openVietQRPaymentModal(maHD) {
+      const bill = STATE.bills.find(b => b.Ma_HD === maHD);
+      if (!bill) return;
+
+      const tong = Number(String(bill.Tong_Cong).replace(/,/g,'') || 0);
+      const daTra = Number(String(bill.So_Tien_Da_Tra).replace(/,/g,'') || 0);
+      const conNo = Math.max(0, tong - daTra);
+      const minPct = Number(STATE.settings['TY_LE_TRA_TOI_THIEU'] || 30);
+      const minFixed = Number(STATE.settings['SO_TIEN_TRA_TOI_THIEU'] || 500000);
+      const minRequired = Math.min(conNo, Math.max(minFixed, Math.round((tong * minPct) / 100)));
+
+      const bankBin = STATE.settings['NGAN_HANG_BIN'] || '970423';
+      const bankStk = STATE.settings['NGAN_HANG_STK'] || '55288886868';
+      const bankOwner = encodeURIComponent(STATE.settings['NGAN_HANG_CHU_TK'] || 'LE VAN NAM');
+      const addInfo = encodeURIComponent(`THANH TOAN ${bill.Ma_Phong} KY ${bill.Ky_Hoa_Don}`);
+      const qrImg = `https://img.vietqr.io/image/${bankBin}-${bankStk}-compact2.png?amount=${conNo}&addInfo=${addInfo}&accountName=${bankOwner}`;
+
+      const modalHtml = `
+        <div id="dynamic-qr-modal" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs z-[180] flex items-center justify-center p-4">
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 class="text-base font-black">Thanh Toán VietQR — Phòng ${bill.Ma_Phong} (${bill.Ky_Hoa_Don})</h3>
+                <p class="text-xs text-slate-500">Tự động gửi Email xác nhận cho tất cả thành viên trong phòng sau khi thanh toán</p>
+              </div>
+              <button onclick="document.getElementById('dynamic-qr-modal').remove()" class="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800">✕</button>
+            </div>
+
+            <div class="text-center space-y-2">
+              <img id="vietqr-live-img" src="${qrImg}" class="w-56 h-auto mx-auto rounded-2xl border p-2 bg-white" />
+              <p class="text-xs font-bold">${STATE.settings['NGAN_HANG_TEN'] || 'TPBank'} • STK: <span class="font-mono">${bankStk}</span> (${STATE.settings['NGAN_HANG_CHU_TK'] || 'LE VAN NAM'})</p>
+            </div>
+
+            <div class="space-y-3 bg-slate-50 dark:bg-zinc-950 p-4 rounded-2xl text-xs">
+              <div class="flex justify-between"><span>Tổng hóa đơn:</span><b>${tong.toLocaleString('vi-VN')} đ</b></div>
+              <div class="flex justify-between"><span>Còn phải thanh toán:</span><b class="text-red-500">${conNo.toLocaleString('vi-VN')} đ</b></div>
+              <div class="flex justify-between text-amber-600"><span>Mức tối thiểu nếu trả 1 phần (${minPct}%):</span><b>${minRequired.toLocaleString('vi-VN')} đ</b></div>
+
+              <div class="pt-2 border-t space-y-2">
+                <label class="block font-bold">Số tiền thanh toán đợt này (VNĐ) *</label>
+                <input type="number" id="pay-amount-input" value="${conNo}" min="${minRequired}" max="${conNo}"
+                       oninput="onPaymentAmountInput('${bankBin}','${bankStk}','${bankOwner}','${addInfo}', ${conNo})"
+                       class="w-full rounded-xl border border-teal-500 px-3 py-2 font-mono font-black text-sm" />
+              </div>
+
+              <div id="partial-date-container" class="hidden space-y-1">
+                <label class="block font-bold text-orange-600">Dự kiến khi nào trả đủ phần còn lại? *</label>
+                <input type="date" id="pay-promised-date" class="w-full rounded-xl border border-orange-500 px-3 py-2 font-bold" />
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2">
+              <button onclick="document.getElementById('dynamic-qr-modal').remove()" class="px-4 py-2 rounded-xl border text-xs font-bold">Đóng</button>
+              <button onclick="confirmVietQRPayment('${bill.Ma_HD}')" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-xl text-xs font-bold">
+                Xác Nhận Đã Chuyển Khoản & Gửi Mail Phòng
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    function onPaymentAmountInput(bin, stk, owner, info, conNo) {
+      const val = Number(document.getElementById('pay-amount-input').value || 0);
+      document.getElementById('vietqr-live-img').src = `https://img.vietqr.io/image/${bin}-${stk}-compact2.png?amount=${val}&addInfo=${info}&accountName=${owner}`;
+      document.getElementById('partial-date-container').classList.toggle('hidden', val >= conNo);
+    }
+
+    async function confirmVietQRPayment(maHD) {
+      const soTienThanhToan = Number(document.getElementById('pay-amount-input').value || 0);
+      const ngayDuKienTraDu = document.getElementById('pay-promised-date').value;
+      const res = await apiCall('processBillPayment', { maHD, soTienThanhToan, ngayDuKienTraDu });
+      if (res && res.success) {
+        showToast(res.message);
+        const modal = document.getElementById('dynamic-qr-modal');
+        if (modal) modal.remove();
+        await loadRoleData();
+      } else if (res) {
+        showToast(res.message, 'error');
+      }
+    }
+
+    async function triggerSendBillEmail(maHD) {
+      const res = await apiCall('sendRoomBillEmail', { maHD });
+      if (res && res.success) {
+        showToast(res.message);
+        await loadRoleData();
+      } else if (res) {
+        showToast(res.message, 'error');
+      }
+    }
+
+    /**
+     * ========================================================================
+     * MODULE 9 & 10: CƠ SỞ VẬT CHẤT - SỬA CHỮA & QUẢN LÝ VI PHẠM (CÁ NHÂN / PHÒNG)
+     * ========================================================================
+     */
+    function renderAssetsAndRepairsTab(isUserMode = false) {
+      const khu = STATE.selectedKhu;
+      const assets = isUserMode ? STATE.assets : STATE.assets.filter(a => khu === 'ALL' || a.Khu_Tro === khu);
+      const repairs = isUserMode ? STATE.repairs : STATE.repairs.filter(s => khu === 'ALL' || s.Khu_Tro === khu);
+
+      return `
+        <div class="space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 class="text-2xl font-black">Quản Lý Cơ Sở Vật Chất & Sửa Chữa Phòng</h1>
+              <p class="text-xs text-slate-500">Theo dõi bảo hành máy lạnh, tủ lạnh và tiếp nhận xử lý sự cố phòng trọ</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="promptCreateRepairRequest()" class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl">
+                + Báo Sửa Chữa / Bảo Trì Mới
+              </button>
+            </div>
+          </div>
+
+          <!-- Bảng Danh mục Thiết bị / Cơ sở vật chất -->
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-2xs">
+            <div class="p-4 border-b font-black text-sm">Danh Mục Thiết Bị Lắp Đặt Trong Phòng (${assets.length} thiết bị)</div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-900 text-white text-[10px] uppercase">
+                    <th class="p-3">Mã TB</th>
+                    <th class="p-3">Phòng</th>
+                    <th class="p-3">Tên thiết bị & Thương hiệu</th>
+                    <th class="p-3">Model / Serial Dàn lạnh - Dàn nóng</th>
+                    <th class="p-3">Ngày lắp</th>
+                    <th class="p-3">Hạn BH</th>
+                    <th class="p-3">Tình trạng</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-zinc-800">
+                  ${assets.map(a => `
+                    <tr>
+                      <td class="p-3 font-mono font-bold">${a.Ma_TB}</td>
+                      <td class="p-3 font-black text-teal-600">${a.Ma_Phong}</td>
+                      <td class="p-3 font-bold">${a.Ten_Thiet_Bi} (${a.Thuong_Hieu})</td>
+                      <td class="p-3 font-mono text-[11px]">Model: ${a.Model} | Lạnh: ${a.Serial_Dan_Lanh} | Nóng: ${a.Serial_Dan_Nong}</td>
+                      <td class="p-3">${a.Ngay_Lap_Kich_Hoat}</td>
+                      <td class="p-3">${a.Ngay_Het_BH}</td>
+                      <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[10px] font-bold">${a.Tinh_Trang}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Bảng Yêu cầu Sửa chữa & Bảo trì -->
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-2xs">
+            <div class="p-4 border-b font-black text-sm">Lịch Sử Bảo Trì & Yêu Cầu Sửa Chữa Phòng (${repairs.length})</div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-900 text-white text-[10px] uppercase">
+                    <th class="p-3">Mã SC</th>
+                    <th class="p-3">Ngày báo</th>
+                    <th class="p-3">Phòng</th>
+                    <th class="p-3">Người báo</th>
+                    <th class="p-3">Phân loại</th>
+                    <th class="p-3">Nội dung sự cố / Bảo trì</th>
+                    <th class="p-3 text-right">Chi phí</th>
+                    <th class="p-3">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-zinc-800">
+                  ${repairs.map(s => `
+                    <tr>
+                      <td class="p-3 font-mono font-bold">${s.Ma_SC}</td>
+                      <td class="p-3">${s.Ngay_Ghi_Nhan}</td>
+                      <td class="p-3 font-black">${s.Ma_Phong}</td>
+                      <td class="p-3 font-semibold">${s.Nguoi_Bao_Cao}</td>
+                      <td class="p-3">${s.Phan_Loai}</td>
+                      <td class="p-3 font-bold">${s.Noi_Dung_Su_Co_Bao_Tri}</td>
+                      <td class="p-3 text-right font-mono">${Number(String(s.Chi_Phi).replace(/,/g,'') || 0).toLocaleString('vi-VN')}đ</td>
+                      <td class="p-3">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${s.Trang_Thai === 'Hoàn thành' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600'}">
+                          ${s.Trang_Thai}
+                        </span>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function promptCreateRepairRequest() {
+      const defaultRoom = STATE.user && STATE.user.Role === 'User' ? STATE.user.Ma_Phong : 'CR-P01';
+      const maPhong = STATE.user && STATE.user.Role === 'User' ? defaultRoom : prompt('Nhập Mã phòng cần sửa chữa / bảo trì:', defaultRoom);
+      if (!maPhong) return;
+      const noiDung = prompt('Mô tả chi tiết hư hỏng / yêu cầu sửa chữa:', '');
+      if (!noiDung) return;
+      const roomObj = STATE.rooms.find(r => r.Ma_Phong === maPhong);
+
+      const res = await apiCall('saveAssetOrRepair', {
+        type: 'repair',
+        Khu_Tro: roomObj ? roomObj.Khu_Tro : 'Cái Răng',
+        Ma_Phong: maPhong,
+        Nguoi_Bao_Cao: STATE.user ? STATE.user.Ho_Ten : 'Cư dân',
+        Phan_Loai: 'Sửa chữa phòng',
+        Noi_Dung_Su_Co_Bao_Tri: noiDung
+      });
+      if (res && res.success) {
+        showToast(res.message);
+        await loadRoleData();
+      }
+    }
+
+    function renderViolationsTab(isUserMode = false) {
+      const list = STATE.violations;
+      return `
+        <div class="space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 class="text-2xl font-black">Quản Lý Nhắc Nhở & Vi Phạm Nội Quy (Cá Nhân & Cả Phòng)</h1>
+              <p class="text-xs text-slate-500">Ghi nhận nhắc nhở về giờ giấc, tiếng ồn, để xe, vệ sinh chung và khai báo tạm trú</p>
+            </div>
+            ${!isUserMode ? `
+              <button onclick="promptCreateViolation()" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl">
+                + Ghi Nhận Nhắc Nhở / Vi Phạm
+              </button>
+            ` : ''}
+          </div>
+
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-2xs">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-900 text-white text-[10px] uppercase">
+                  <th class="p-3.5">Mã VP</th>
+                  <th class="p-3.5">Ngày</th>
+                  <th class="p-3.5">Phòng</th>
+                  <th class="p-3.5">Phạm vi</th>
+                  <th class="p-3.5">Cá nhân / Tập thể</th>
+                  <th class="p-3.5">Loại vi phạm</th>
+                  <th class="p-3.5">Nội dung chi tiết</th>
+                  <th class="p-3.5">Mức xử lý</th>
+                  <th class="p-3.5">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 dark:divide-zinc-800">
+                ${list.map(v => `
+                  <tr>
+                    <td class="p-3.5 font-mono font-bold">${v.Ma_VP}</td>
+                    <td class="p-3.5">${v.Ngay_Ghi_Nhan}</td>
+                    <td class="p-3.5 font-black text-red-500">${v.Ma_Phong}</td>
+                    <td class="p-3.5">
+                      <span class="px-2 py-0.5 rounded-md font-bold text-[10px] ${v.Pham_Vi === 'Cả phòng' ? 'bg-purple-500/15 text-purple-600' : 'bg-orange-500/15 text-orange-600'}">
+                        ${v.Pham_Vi}
+                      </span>
+                    </td>
+                    <td class="p-3.5 font-bold">${v.Ten_Nguoi_Vi_Pham}</td>
+                    <td class="p-3.5 font-semibold">${v.Loai_Vi_Pham}</td>
+                    <td class="p-3.5">${v.Noi_Dung_Chi_Tiet}</td>
+                    <td class="p-3.5 font-bold text-red-500">${v.Muc_Do_Xu_Ly}</td>
+                    <td class="p-3.5">${v.Trang_Thai}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function promptCreateViolation() {
+      const Ma_Phong = prompt('Nhập Mã phòng vi phạm (VD: BT-P03, CR-P08):', 'BT-P03');
+      if (!Ma_Phong) return;
+      const Pham_Vi = prompt('Phạm vi vi phạm (Nhập "Cá nhân" hoặc "Cả phòng"):', 'Cả phòng');
+      const Ten_Nguoi_Vi_Pham = prompt('Tên cá nhân hoặc tập thể phòng:', `Tập thể phòng ${Ma_Phong}`);
+      const Noi_Dung_Chi_Tiet = prompt('Nội dung nhắc nhở / vi phạm:', '');
+      if (!Noi_Dung_Chi_Tiet) return;
+      const Muc_Do_Xu_Ly = prompt('Mức độ xử lý:', 'Nhắc nhở lần 1');
+
+      const roomObj = STATE.rooms.find(r => r.Ma_Phong === Ma_Phong);
+      const res = await apiCall('saveViolation', {
+        Khu_Tro: roomObj ? roomObj.Khu_Tro : 'Cái Răng',
+        Ma_Phong, Pham_Vi, Ten_Nguoi_Vi_Pham, Noi_Dung_Chi_Tiet, Muc_Do_Xu_Ly
+      });
+      if (res && res.success) {
+        showToast(res.message);
+        await loadRoleData();
+      }
+    }
+
+    /**
+     * ========================================================================
+     * MODULE 11: CỔNG THÔNG TIN NGƯỜI THUÊ (USER PORTAL) & CÀI ĐẶT HỆ THỐNG
+     * ========================================================================
+     */
+    function renderUserRoomOverviewTab() {
+      const r = STATE.rooms[0] || {};
+      return `
+        <div class="space-y-6">
+          <div class="bg-gradient-to-r from-zinc-900 to-slate-900 text-white rounded-3xl p-6 shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <span class="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-teal-500/20 text-teal-300">CỔNG CƯ DÂN NHÀ TRỌ NGỌC NAM</span>
+              <h1 class="text-2xl sm:text-3xl font-black mt-2">Phòng ${r.Ma_Phong || STATE.user.Ma_Phong} — ${r.Khu_Tro || STATE.user.Khu_Tro}</h1>
+              <p class="text-xs text-slate-300 mt-1">Giá thuê: <b>${Number(String(r.Gia_Phong || 0).replace(/,/g,'')).toLocaleString('vi-VN')}đ/tháng</b> • Điện: ${r.Don_Gia_Dien}đ/kWh • Nước: ${r.Don_Gia_Nuoc}đ/m³</p>
+            </div>
+            <div class="flex gap-3">
+              <div class="bg-white/10 rounded-2xl px-4 py-2.5 text-center">
+                <span class="text-[10px] uppercase text-slate-300 block">Chỉ số Điện</span>
+                <span class="text-lg font-black text-amber-400">⚡ ${r.Chi_So_Dien_Hien_Tai || 0}</span>
+              </div>
+              <div class="bg-white/10 rounded-2xl px-4 py-2.5 text-center">
+                <span class="text-[10px] uppercase text-slate-300 block">Chỉ số Nước</span>
+                <span class="text-lg font-black text-blue-400">💧 ${r.Chi_So_Nuoc_Hien_Tai || 0}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4">
+            <h3 class="text-base font-black">Danh Sách Thành Viên Cùng Phòng (${STATE.roommates.length} người)</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${STATE.roommates.map(m => `
+                <div class="p-4 rounded-2xl border border-slate-200 dark:border-zinc-800 flex items-center justify-between">
+                  <div>
+                    <p class="text-sm font-black">${m['Họ tên']}</p>
+                    <p class="text-xs text-slate-500">${m.Vai_Tro_Phong} • SĐT: ${m['Điện thoại'] || '-'}</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">${m['Mã lớp'] || ''}</p>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-xl bg-teal-500/10 text-teal-600 font-mono text-xs font-bold">${m.Username}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderUserProfile24Tab() {
+      const p = STATE.profile || {};
+      return `
+        <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4">
+          <div class="flex items-center justify-between border-b pb-4">
+            <div>
+              <h2 class="text-xl font-black">Hồ Sơ Định Danh Cá Nhân (24 Trường Thông Tin)</h2>
+              <p class="text-xs text-slate-500">Bạn có thể quét mã QR CCCD hoặc bổ sung các trường thông tin còn thiếu</p>
+            </div>
+            <button onclick="openTenantModalForEdit('${p.Ma_KH}')" class="bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl">
+              Cập Nhật Hồ Sơ & Quét QR CCCD
+            </button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>1. Họ tên:</b> ${p['Họ tên'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>2. Ngày sinh:</b> ${p['Ngày sinh'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>3. Mã lớp / Trường:</b> ${p['Mã lớp'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>4. Số CCCD:</b> ${p['Số CCCD'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>5. Giới tính:</b> ${p['Giới tính'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>6. Địa chỉ:</b> ${p['Địa chỉ'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>7. Điện thoại:</b> ${p['Điện thoại'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>8. Biển số xe:</b> ${p['Biển số xe'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>9. Loại xe:</b> ${p['Loại xe'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>10. Số tài khoản:</b> ${p['Số tài khoản'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>11. Ngân hàng:</b> ${p['Ngân hàng'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>12. Chi nhánh:</b> ${p['Chi nhánh'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>16. Ngày cấp:</b> ${p['Ngày cấp'] || '-'}</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>18. Người thân:</b> ${p['Họ tên người thân'] || '-'} (${p['Quan hệ'] || '-'})</div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950"><b>20. SĐT người thân:</b> ${p['SDT người thân'] || '-'}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBookingsTab() {
+      return `
+        <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4">
+          <h2 class="text-xl font-black">Danh Sách Khách Đăng Ký Thuê Trọ Từ Trang Chủ (${STATE.bookings.length})</h2>
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-900 text-white text-[10px] uppercase">
+                <th class="p-3">Mã ĐK</th><th class="p-3">Ngày ĐK</th><th class="p-3">Họ tên</th><th class="p-3">SĐT</th>
+                <th class="p-3">Khu trọ & Phòng</th><th class="p-3">Ngày dự kiến vào</th><th class="p-3">Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-zinc-800">
+              ${STATE.bookings.map(b => `
+                <tr>
+                  <td class="p-3 font-mono font-bold">${b.Ma_DK}</td>
+                  <td class="p-3">${b.Ngay_Dang_Ky}</td>
+                  <td class="p-3 font-bold">${b.Ho_Ten_Khach}</td>
+                  <td class="p-3 font-mono font-bold">${b.So_Dien_Thoai}</td>
+                  <td class="p-3">${b.Khu_Tro_Quan_Tam} — ${b.Phong_Quan_Tam}</td>
+                  <td class="p-3">${b.Ngay_Du_Kien_Vao_O}</td>
+                  <td class="p-3">${b.Ghi_Chu_Nhu_Cau}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderSettingsAndCanvasConfigTab() {
+      const s = STATE.settings;
+      return `
+        <div class="space-y-6">
+          <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 space-y-4">
+            <h2 class="text-xl font-black">Cài Đặt Hệ Thống, Ngân Hàng Chủ Trọ & Hạn Mức Thanh Toán</h2>
+            <form onsubmit="handleSaveSettings(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="block font-bold mb-1">Họ tên Chủ trọ</label>
+                <input type="text" id="st-chutro" value="${s['CHU_TRO_HO_TEN'] || 'Lê Văn Nam'}" class="w-full rounded-xl border px-3 py-2 font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">Số điện thoại Chủ trọ</label>
+                <input type="text" id="st-sdt" value="${s['CHU_TRO_SDT'] || '0346576748'}" class="w-full rounded-xl border px-3 py-2 font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">Email Quản trị nhận thông báo</label>
+                <input type="email" id="st-email" value="${s['CHU_TRO_EMAIL'] || ''}" class="w-full rounded-xl border px-3 py-2 font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">Ngân hàng VietQR (BIN)</label>
+                <input type="text" id="st-bin" value="${s['NGAN_HANG_BIN'] || '970423'}" class="w-full rounded-xl border px-3 py-2 font-mono font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">Số tài khoản nhận tiền trọ</label>
+                <input type="text" id="st-stk" value="${s['NGAN_HANG_STK'] || '55288886868'}" class="w-full rounded-xl border px-3 py-2 font-mono font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">Tên Chủ TK VietQR</label>
+                <input type="text" id="st-chutk" value="${s['NGAN_HANG_CHU_TK'] || 'LE VAN NAM'}" class="w-full rounded-xl border px-3 py-2 font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">Ngày mở nhập điện nước hàng tháng</label>
+                <input type="number" id="st-ngaymo" value="${s['NGAY_MO_NHAP_DIEN_NUOC'] || 25}" class="w-full rounded-xl border px-3 py-2 font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">Ngày đóng nhập điện nước</label>
+                <input type="number" id="st-ngaydong" value="${s['NGAY_DONG_NHAP_DIEN_NUOC'] || 5}" class="w-full rounded-xl border px-3 py-2 font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">Giới hạn tối thiểu trả 1 phần (%)</label>
+                <input type="number" id="st-tyle" value="${s['TY_LE_TRA_TOI_THIEU'] || 30}" class="w-full rounded-xl border px-3 py-2 font-bold" />
+              </div>
+              <div class="sm:col-span-3 flex justify-end">
+                <button type="submit" class="bg-teal-500 hover:bg-teal-600 text-white font-bold px-6 py-2.5 rounded-xl">Lưu Cài Đặt Hệ Thống</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    async function handleSaveSettings(e) {
+      e.preventDefault();
+      const settings = {
+        CHU_TRO_HO_TEN: document.getElementById('st-chutro').value,
+        CHU_TRO_SDT: document.getElementById('st-sdt').value,
+        CHU_TRO_EMAIL: document.getElementById('st-email').value,
+        NGAN_HANG_BIN: document.getElementById('st-bin').value,
+        NGAN_HANG_STK: document.getElementById('st-stk').value,
+        NGAN_HANG_CHU_TK: document.getElementById('st-chutk').value,
+        NGAY_MO_NHAP_DIEN_NUOC: document.getElementById('st-ngaymo').value,
+        NGAY_DONG_NHAP_DIEN_NUOC: document.getElementById('st-ngaydong').value,
+        TY_LE_TRA_TOI_THIEU: document.getElementById('st-tyle').value
+      };
+      const res = await apiCall('saveSettings', { settings });
+      if (res && res.success) {
+        showToast(res.message);
+        await loadRoleData();
+      }
+    }
+
+    async function openCanvasRoomEditor() {
+      const Ma_Phong = prompt('Nhập Mã phòng cần Thêm mới hoặc Chỉnh sửa trên Canvas (VD: CR-P24, BT-P09):', 'BT-P09');
+      if (!Ma_Phong) return;
+      const existing = STATE.rooms.find(r => r.Ma_Phong === Ma_Phong) || {};
+      const Khu_Tro = prompt('Khu trọ (Cái Răng / Bình Thủy (Võ Văn Kiệt)):', existing.Khu_Tro || 'Bình Thủy (Võ Văn Kiệt)');
+      const Day_Tang = prompt('Dãy / Tầng hiển thị trên Canvas:', existing.Day_Tang || 'Tầng 3');
+      const Gia_Phong = prompt('Giá tiền phòng (VNĐ/tháng):', existing.Gia_Phong || '2000000');
+      const Don_Gia_Dien = prompt('Đơn giá Điện (VNĐ/kWh):', existing.Don_Gia_Dien || '4000');
+      const Don_Gia_Nuoc = prompt('Đơn giá Nước (VNĐ/m³):', existing.Don_Gia_Nuoc || '12000');
+
+      const res = await apiCall('saveRoomCanvas', {
+        Ma_Phong,
+        Ten_Phong: Ma_Phong,
+        Khu_Tro,
+        Day_Tang,
+        Gia_Phong,
+        Don_Gia_Dien,
+        Don_Gia_Nuoc
+      });
+      if (res && res.success) {
+        showToast(res.message);
+        await loadRoleData();
+      }
+    }
+  </script>
+</body>
+</html>	
